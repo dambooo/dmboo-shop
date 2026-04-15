@@ -12,7 +12,7 @@ export default function Footer() {
             <div className="footer-brand">GEZEG</div>
             <p className="footer-brand-desc">Чанартай, байгальд ээлтэй, өдөр тутмын арчилгааны бүтээгдэхүүнүүдийг албан ёсоор борлуулна.</p>
             <div className="footer-social">
-              <a href="https://www.instagram.com/gezeghair/" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Instagram">
+              <a href="https://www.instagram.com/gezegstore/" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Instagram">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
               </a>
               <a href="#" className="social-icon" aria-label="Facebook">

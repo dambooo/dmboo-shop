@@ -61,7 +61,7 @@ export default function CheckoutModal({ isOpen, onClose }) {
             <input
               type="tel"
               id="checkoutPhone"
-              placeholder="Жишээ: 88001234"
+              placeholder="Жишээ: 88120583"
               maxLength="8"
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setPhoneError(false); }}

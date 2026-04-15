@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { formatPrice } from '@/lib/products';
 import { useShop } from '@/lib/ShopContext';
 
-export default function ProductCarousel({ products, onOpenModal }) {
+export default function ProductCarousel({ products }) {
   const { addToCart } = useShop();
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef(null);
@@ -59,9 +60,9 @@ export default function ProductCarousel({ products, onOpenModal }) {
       </div>
 
       <div className="carousel-info">
-        <h3 className="carousel-product-name" onClick={() => onOpenModal(activeProduct)}>
+        <Link href={`/products/${activeProduct.id}`} className="carousel-product-name">
           {activeProduct.name}
-        </h3>
+        </Link>
         <p className="carousel-product-desc">{activeProduct.desc}</p>
         <div className="carousel-rating">
           <span className="stars">

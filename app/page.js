@@ -6,7 +6,6 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
 import ProductCarousel from './components/ProductCarousel';
-import ProductModal from './components/ProductModal';
 import CartSidebar from './components/CartSidebar';
 import CheckoutModal from './components/CheckoutModal';
 import Toast from './components/Toast';
@@ -16,7 +15,6 @@ export default function Home() {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [heroSlide, setHeroSlide] = useState(0);
@@ -171,7 +169,7 @@ export default function Home() {
         <div className="container">
           <h2 className="section-title-center">Хамгийн их борлуулалттай</h2>
         </div>
-        <ProductCarousel products={products.slice(0, 8)} onOpenModal={setSelectedProduct} />
+        <ProductCarousel products={products.slice(0, 8)} />
       </section>
 
       {/* 3. Brand Values — IT'S ALL GOOD */}
@@ -221,48 +219,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Shop Categories Banner */}
-      <section className="shop-categories-banner fade-section">
-        <div className="shop-cat-grid">
-          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('shampoo')}>
-            <div className="shop-cat-overlay" />
-            <img src="/banners/hero-1.jpg" alt="Үсний арчилгаа" />
-            <span className="shop-cat-label">ҮСНИЙ АРЧИЛГАА</span>
-          </a>
-          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('mask')}>
-            <div className="shop-cat-overlay" />
-            <img src="/banners/hero-2.jpg" alt="Маск & Тос" />
-            <span className="shop-cat-label">МАСК & ТОС</span>
-          </a>
-          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('set')}>
-            <div className="shop-cat-overlay" />
-            <img src="/banners/hero-3.jpg" alt="Багц" />
-            <span className="shop-cat-label">БАГЦ & СЕТ</span>
-          </a>
-        </div>
-      </section>
-
-      {/* 5. Press / Reviews */}
-      <section className="press-section fade-section">
-        <div className="container">
-          <h2 className="section-title-center">Хэрэглэгчид юу гэж хэлж байна...</h2>
-          <div className="press-grid">
-            <div className="press-card">
-              <blockquote>&ldquo;GEZEG нь чанартай бүтээгдэхүүнүүдийг хямд үнээр санал болгодог. Миний үс маш их сайжирсан!&rdquo;</blockquote>
-              <cite>— Б. Сарнай</cite>
-            </div>
-            <div className="press-card">
-              <blockquote>&ldquo;Байгальд ээлтэй, үр дүнтэй бүтээгдэхүүнийг олоход хэцүү байсан. GEZEG бүгдийг шийдсэн.&rdquo;</blockquote>
-              <cite>— О. Болормаа</cite>
-            </div>
-            <div className="press-card">
-              <blockquote>&ldquo;Хүргэлт маш хурдан, бүтээгдэхүүний чанар гайхалтай. Дахин дахин захиална.&rdquo;</blockquote>
-              <cite>— Д. Батбаяр</cite>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 6. All Products */}
       <section className="products-section fade-section" id="products">
         <div className="container">
@@ -284,7 +240,6 @@ export default function Home() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onOpenModal={setSelectedProduct}
                 />
               ))}
             </div>
@@ -322,17 +277,13 @@ export default function Home() {
         <div className="container">
           <div className="insta-cta-inner">
             <a href="#products" className="insta-cta-link">ХУДАЛДАН АВАХ</a>
-            <a href="https://www.instagram.com/gezeghair/" target="_blank" rel="noopener noreferrer" className="insta-cta-link">@GEZEGHAIR</a>
+            <a href="https://www.instagram.com/gezegstore/" target="_blank" rel="noopener noreferrer" className="insta-cta-link">@GEZEGSTORE</a>
           </div>
         </div>
       </section>
 
       <Footer />
 
-      {/* Modals */}
-      {selectedProduct && (
-        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      )}
       <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} onCheckout={handleCheckout} />
       <CheckoutModal isOpen={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
       <Toast />

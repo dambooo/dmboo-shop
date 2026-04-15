@@ -20,8 +20,33 @@ export default function AdminPage() {
   const [orderDetailId, setOrderDetailId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [form, setForm] = useState({
-    name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: ''
+    name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
   });
+  const [uploading, setUploading] = useState({ main: false, hover: false });
+
+  const handleImageUpload = async (file, type) => {
+    if (!file) return;
+    setUploading(prev => ({ ...prev, [type]: true }));
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        setForm(prev => ({
+          ...prev,
+          [type === 'main' ? 'image' : 'hoverImage']: data.url
+        }));
+      } else {
+        showToast(data.error || 'Зураг оруулахад алдаа гарлаа');
+      }
+    } catch {
+      showToast('Зураг оруулахад алдаа гарлаа');
+    } finally {
+      setUploading(prev => ({ ...prev, [type]: false }));
+    }
+  };
 
   const loadProducts = useCallback(() => {
     const stored = localStorage.getItem('mn_shop_products');
@@ -68,11 +93,12 @@ export default function AdminPage() {
         discount: product.discount || '',
         category: product.category,
         badge: product.badge || 'sale',
-        image: product.image || ''
+        image: product.image || '',
+        hoverImage: product.hoverImage || ''
       });
     } else {
       setEditId(null);
-      setForm({ name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '' });
+      setForm({ name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '' });
     }
     setModalOpen(true);
   };
@@ -88,7 +114,8 @@ export default function AdminPage() {
       discount: parseInt(form.discount) || null,
       category: form.category,
       badge: form.badge,
-      image: form.image.trim() || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop'
+      image: form.image.trim() || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop',
+      hoverImage: form.hoverImage.trim() || null
     };
 
     let updated;
@@ -134,7 +161,7 @@ export default function AdminPage() {
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <span className="sidebar-logo">GEZEG</span>
-          <span className="sidebar-subtitle">Admin Panel</span>
+          <span className="sidebar-subtitle">Удирдлагын самбар</span>
         </div>
         <nav className="sidebar-nav">
           <button className={`sidebar-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
@@ -288,7 +315,12 @@ export default function AdminPage() {
                       {filteredProducts.map((p, idx) => (
                         <tr key={p.id}>
                           <td>{idx + 1}</td>
-                          <td><img className="table-img" src={p.image} alt="" /></td>
+                          <td>
+                            <div className="table-img-group">
+                              <img className="table-img" src={p.image} alt="" />
+                              {p.hoverImage && <img className="table-img table-img-hover" src={p.hoverImage} alt="hover" />}
+                            </div>
+                          </td>
                           <td>
                             <div className="table-name">{p.name}</div>
                             <div className="table-brand">{p.brand}</div>
@@ -426,24 +458,31 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Badge</label>
+                  <label>Тэмдэглэгээ</label>
                   <select value={form.badge} onChange={e => setForm({...form, badge: e.target.value})}>
-                    <option value="sale">Хямдрал (sale)</option>
-                    <option value="new">Шинэ (new)</option>
-                    <option value="hot">Эрэлттэй (hot)</option>
+                    <option value="sale">Хямдрал</option>
+                    <option value="new">Шинэ</option>
+                    <option value="hot">Эрэлттэй</option>
                   </select>
                 </div>
                 <div className="form-group full-width">
-                  <label>Зургийн URL</label>
-                  <input type="url" placeholder="https://..." value={form.image} onChange={e => setForm({...form, image: e.target.value})} />
-                  <small>Хоосон орхивол анхдагч зураг харуулна</small>
-                </div>
-                {form.image && (
-                  <div className="form-group full-width">
-                    <label>Зургийн урьдчилсан харагдац</label>
-                    <img src={form.image} alt="preview" className="form-image-preview" />
+                  <label>Үндсэн зураг</label>
+                  <div className="image-upload-area">
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => handleImageUpload(e.target.files[0], 'main')} />
+                    {uploading.main && <span className="upload-status">Оруулж байна...</span>}
                   </div>
-                )}
+                  <input type="text" placeholder="Эсвэл URL оруулна уу..." value={form.image} onChange={e => setForm({...form, image: e.target.value})} style={{marginTop: 8}} />
+                  {form.image && <img src={form.image} alt="preview" className="form-image-preview" />}
+                </div>
+                <div className="form-group full-width">
+                  <label>Hover зураг (хулганаа аваачихад харагдах)</label>
+                  <div className="image-upload-area">
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => handleImageUpload(e.target.files[0], 'hover')} />
+                    {uploading.hover && <span className="upload-status">Оруулж байна...</span>}
+                  </div>
+                  <input type="text" placeholder="Эсвэл URL оруулна уу..." value={form.hoverImage} onChange={e => setForm({...form, hoverImage: e.target.value})} style={{marginTop: 8}} />
+                  {form.hoverImage && <img src={form.hoverImage} alt="hover preview" className="form-image-preview" />}
+                </div>
               </div>
               <div className="form-actions">
                 <button type="button" className="btn-cancel" onClick={() => setModalOpen(false)}>Болих</button>
