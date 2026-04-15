@@ -1,66 +1,341 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useShop } from '@/lib/ShopContext';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import ProductCard from './components/ProductCard';
+import ProductCarousel from './components/ProductCarousel';
+import ProductModal from './components/ProductModal';
+import CartSidebar from './components/CartSidebar';
+import CheckoutModal from './components/CheckoutModal';
+import Toast from './components/Toast';
 
 export default function Home() {
+  const { products, refreshProducts } = useShop();
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [heroSlide, setHeroSlide] = useState(0);
+  const [openFaq, setOpenFaq] = useState(null);
+
+  // Scroll reveal animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
+    );
+    document.querySelectorAll('.fade-section').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const heroSlides = [
+    {
+      image: '/banners/hero-1.jpg',
+      subtitle: '2000+ сэтгэгдэл',
+      title: 'Байгалийн гаралтай үсний арчилгаа.',
+      desc: 'ТАНЫ ҮС, ТАНЫ ГАЙХАМШИГ',
+      btn: 'SHOP NOW',
+    },
+    {
+      image: '/banners/hero-2.jpg',
+      subtitle: 'Шинэ цуврал',
+      title: 'Гүн тэжээллэг маск & тос.',
+      desc: 'БАЙГАЛИЙН ХҮЧИЙГ МЭДРЭЭРЭЙ',
+      btn: 'SHOP NOW',
+    },
+    {
+      image: '/banners/hero-3.jpg',
+      subtitle: 'Хамгийн их борлуулалттай',
+      title: 'Өдөр тутмын арчилгааны багц.',
+      desc: 'ХААНА Ч ЯВАА, ТАНЬ ДАГАЛДАНА',
+      btn: 'SHOP NOW',
+    },
+  ];
+
+  const nextSlide = () => setHeroSlide((prev) => (prev + 1) % heroSlides.length);
+  const prevSlide = () => setHeroSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+
+  useEffect(() => {
+    const timer = setInterval(nextSlide, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
+
+  useEffect(() => {
+    let list = products;
+    if (activeCategory !== 'all') {
+      list = list.filter(p => p.category === activeCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        p.desc.toLowerCase().includes(q)
+      );
+    }
+    setFilteredProducts(list);
+  }, [products, activeCategory, searchQuery]);
+
+  useEffect(() => {
+    const handler = () => setCartOpen(prev => !prev);
+    window.addEventListener('toggleCart', handler);
+    return () => window.removeEventListener('toggleCart', handler);
+  }, []);
+
+  const handleCategoryClick = (cat) => {
+    setActiveCategory(cat);
+    setSearchQuery('');
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setActiveCategory('all');
+  };
+
+  const handleCheckout = () => {
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  };
+
+  const categories = [
+    { key: 'all', label: 'Бүгд' },
+    { key: 'shampoo', label: 'Шампунь' },
+    { key: 'conditioner', label: 'Кондиционер' },
+    { key: 'mask', label: 'Маск' },
+    { key: 'oil', label: 'Тос' },
+    { key: 'set', label: 'Багц' },
+  ];
+
+  const faqs = [
+    { q: 'Хүргэлт хэрхэн хийгддэг вэ?', a: 'Улаанбаатар хотод 24-48 цагийн дотор хүргэнэ.' },
+    { q: 'Бүтээгдэхүүн жинхэнэ эсэхийг яаж мэдэх вэ?', a: 'Бид бүх бүтээгдэхүүнийг албан ёсны дистрибьютерээс шууд авдаг бөгөөд жинхэнэ гэдгийг баталгаажуулсан байдаг.' },
+    { q: 'Төлбөрийн ямар хэлбэрүүд байдаг вэ?', a: 'Дансаар шилжүүлэг, QPay, SocialPay, болон бэлнээр хүргэлтийн үед төлөх боломжтой.' },
+  ];
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <>
+      <Header onSearch={handleSearch} />
+
+      {/* 1. Hero Banner Slider */}
+      <section className="hero-banner">
+        {heroSlides.map((slide, i) => (
+          <div
+            key={i}
+            className={`hero-slide ${i === heroSlide ? 'active' : ''}`}
+            style={{ backgroundImage: `url(${slide.image})` }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <div className="hero-slide-overlay" />
+            <div className="hero-slide-content">
+              <p className="hero-slide-subtitle">
+                <span className="stars-hero">★★★★★</span> {slide.subtitle}
+              </p>
+              <h1 className="hero-slide-title">{slide.title}</h1>
+              <p className="hero-slide-desc">{slide.desc}</p>
+              <a href="#products" className="hero-slide-btn">{slide.btn}</a>
+            </div>
+          </div>
+        ))}
+        <button className="hero-arrow hero-arrow-left" onClick={prevSlide}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button className="hero-arrow hero-arrow-right" onClick={nextSlide}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div className="hero-dots">
+          {heroSlides.map((_, i) => (
+            <button
+              key={i}
+              className={`hero-dot ${i === heroSlide ? 'active' : ''}`}
+              onClick={() => setHeroSlide(i)}
             />
-            Deploy Now
+          ))}
+        </div>
+      </section>
+
+      {/* 2. Best Sellers Carousel */}
+      <section className="bestsellers-section fade-section">
+        <div className="container">
+          <h2 className="section-title-center">Хамгийн их борлуулалттай</h2>
+        </div>
+        <ProductCarousel products={products.slice(0, 8)} onOpenModal={setSelectedProduct} />
+      </section>
+
+      {/* 3. Brand Values — IT'S ALL GOOD */}
+      <section className="brand-values-section fade-section">
+        <div className="container">
+          <p className="bv-subtitle">IT&apos;S ALL GOOD</p>
+          <h2 className="bv-title">Бид бол GEZEG.<br/>Цэвэр, байгалийн, өдөр тутмын<br/>арчилгаа — жинхэнэ үр дүнтэй.</h2>
+          <div className="bv-grid">
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M24 4C18 4 14 10 14 16c0 8 10 18 10 18s10-10 10-18c0-6-4-12-10-12z"/><circle cx="24" cy="16" r="4"/><path d="M10 38c0-4 6-7 14-7s14 3 14 7"/></svg>
+              </div>
+              <span className="bv-label">100% ЖИНХЭНЭ<br/>БҮТЭЭГДЭХҮҮН</span>
+            </div>
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 8c-4 2-6 8-4 14s8 12 12 14c4-2 10-8 12-14s0-12-4-14"/><path d="M24 12v24"/><path d="M18 20c2-2 4-3 6-3s4 1 6 3"/></svg>
+              </div>
+              <span className="bv-label">БАЙГАЛЬД<br/>ЭЭЛТЭЙ</span>
+            </div>
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="8" y="14" width="32" height="24" rx="3"/><path d="M8 22h32"/><path d="M16 30h8"/></svg>
+              </div>
+              <span className="bv-label">ХЯЛБАР<br/>ТӨЛБӨР</span>
+            </div>
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 24c0-8 5.4-14 12-14s12 6 12 14"/><path d="M8 24h32"/><path d="M18 32c0 2 2.7 4 6 4s6-2 6-4"/><path d="M20 18c1-2 2.5-3 4-3s3 1 4 3"/></svg>
+              </div>
+              <span className="bv-label">БҮХ ТӨРЛИЙН<br/>ҮСЭНД</span>
+            </div>
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 36V16l16-8 16 8v20l-16 8z"/><path d="M24 8v36"/><path d="M8 16l16 8 16-8"/></svg>
+              </div>
+              <span className="bv-label">ХУРДАН<br/>ХҮРГЭЛТ</span>
+            </div>
+            <div className="bv-item">
+              <div className="bv-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M24 4l6 12 13 2-9.5 9 2.5 13L24 34l-12 6 2.5-13L5 18l13-2z"/></svg>
+              </div>
+              <span className="bv-label">ДЭЭД ЗЭРГИЙН<br/>ЧАНАР</span>
+            </div>
+          </div>
+          <a href="#products" className="bv-btn">ДЭЛГЭРЭНГҮЙ</a>
+        </div>
+      </section>
+
+      {/* 4. Shop Categories Banner */}
+      <section className="shop-categories-banner fade-section">
+        <div className="shop-cat-grid">
+          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('shampoo')}>
+            <div className="shop-cat-overlay" />
+            <img src="/banners/hero-1.jpg" alt="Үсний арчилгаа" />
+            <span className="shop-cat-label">ҮСНИЙ АРЧИЛГАА</span>
           </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('mask')}>
+            <div className="shop-cat-overlay" />
+            <img src="/banners/hero-2.jpg" alt="Маск & Тос" />
+            <span className="shop-cat-label">МАСК & ТОС</span>
+          </a>
+          <a href="#products" className="shop-cat-card" onClick={() => handleCategoryClick('set')}>
+            <div className="shop-cat-overlay" />
+            <img src="/banners/hero-3.jpg" alt="Багц" />
+            <span className="shop-cat-label">БАГЦ & СЕТ</span>
           </a>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* 5. Press / Reviews */}
+      <section className="press-section fade-section">
+        <div className="container">
+          <h2 className="section-title-center">Хэрэглэгчид юу гэж хэлж байна...</h2>
+          <div className="press-grid">
+            <div className="press-card">
+              <blockquote>&ldquo;GEZEG нь чанартай бүтээгдэхүүнүүдийг хямд үнээр санал болгодог. Миний үс маш их сайжирсан!&rdquo;</blockquote>
+              <cite>— Б. Сарнай</cite>
+            </div>
+            <div className="press-card">
+              <blockquote>&ldquo;Байгальд ээлтэй, үр дүнтэй бүтээгдэхүүнийг олоход хэцүү байсан. GEZEG бүгдийг шийдсэн.&rdquo;</blockquote>
+              <cite>— О. Болормаа</cite>
+            </div>
+            <div className="press-card">
+              <blockquote>&ldquo;Хүргэлт маш хурдан, бүтээгдэхүүний чанар гайхалтай. Дахин дахин захиална.&rdquo;</blockquote>
+              <cite>— Д. Батбаяр</cite>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. All Products */}
+      <section className="products-section fade-section" id="products">
+        <div className="container">
+          {/* CA Naturals style category nav */}
+          <div className="collection-nav">
+            {categories.map(cat => (
+              <button
+                key={cat.key}
+                className={`collection-nav-item ${activeCategory === cat.key ? 'active' : ''}`}
+                onClick={() => handleCategoryClick(cat.key)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          {filteredProducts.length > 0 ? (
+            <div className="product-grid">
+              {filteredProducts.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onOpenModal={setSelectedProduct}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="no-results">Хайлтад тохирох бүтээгдэхүүн олдсонгүй.</p>
+          )}
+        </div>
+      </section>
+
+      {/* 7. FAQ */}
+      <section className="faq-section fade-section">
+        <div className="container">
+          <h2 className="faq-title">Түгээмэл асуултууд</h2>
+          <div className="faq-list">
+            {faqs.map((faq, i) => (
+              <div className="faq-item" key={i}>
+                <button
+                  className={`faq-question ${openFaq === i ? 'open' : ''}`}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  {faq.q}
+                  <span>+</span>
+                </button>
+                <div className={`faq-answer ${openFaq === i ? 'open' : ''}`}>
+                  {faq.a}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Instagram CTA */}
+      <section className="insta-cta">
+        <div className="container">
+          <div className="insta-cta-inner">
+            <a href="#products" className="insta-cta-link">ХУДАЛДАН АВАХ</a>
+            <a href="https://www.instagram.com/gezeghair/" target="_blank" rel="noopener noreferrer" className="insta-cta-link">@GEZEGHAIR</a>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+
+      {/* Modals */}
+      {selectedProduct && (
+        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
+      <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} onCheckout={handleCheckout} />
+      <CheckoutModal isOpen={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
+      <Toast />
+    </>
   );
 }
