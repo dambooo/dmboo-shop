@@ -49,13 +49,16 @@ export default function AdminPage() {
   };
 
   const loadProducts = useCallback(() => {
-    const stored = localStorage.getItem('mn_shop_products');
-    if (stored) {
-      setProducts(JSON.parse(stored));
-    } else {
-      localStorage.setItem('mn_shop_products', JSON.stringify(defaultProducts));
-      setProducts(defaultProducts);
-    }
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        } else {
+          setProducts(defaultProducts);
+        }
+      })
+      .catch(() => setProducts(defaultProducts));
   }, []);
 
   const loadOrders = useCallback(() => {
@@ -68,8 +71,12 @@ export default function AdminPage() {
   }, [loadProducts, loadOrders]);
 
   const saveProducts = (list) => {
-    localStorage.setItem('mn_shop_products', JSON.stringify(list));
     setProducts(list);
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(list),
+    }).catch(() => {});
   };
 
   const filteredProducts = products.filter(p => {

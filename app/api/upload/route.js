@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import cloudinary from '@/lib/cloudinary';
+import { getServiceSupabase } from '@/lib/supabase';
 
 export async function POST(request) {
   const formData = await request.formData();
@@ -21,16 +21,28 @@ export async function POST(request) {
   }
 
   try {
+    const supabase = getServiceSupabase();
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    const result = await cloudinary.uploader.upload(base64, {
-      folder: 'dmboo-shop/products',
-      resource_type: 'image',
-    });
+    const ext = file.name.split('.').pop() || 'png';
+    const fileName = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = `products/${fileName}`;
 
-    return NextResponse.json({ url: result.secure_url });
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return NextResponse.json({ url: publicUrl });
   } catch (err) {
     console.error('Upload error:', err);
     return NextResponse.json({ error: 'Зураг оруулахад алдаа гарлаа' }, { status: 500 });
