@@ -55,13 +55,13 @@ export default function ProductPage() {
     },
     {
       title: 'ОРЦУУД',
-      content: product.ingredients || 'Байгалийн гаралтай, хортой бодисгүй, сульфат, парабен, силикон агуулаагүй.'
+      content: product.ingredients
     },
     {
       title: 'ХЭРЭГЛЭХ ЗААВАР',
-      content: product.howToUse || 'Чийгтэй үсэнд хэрэглэж, зөөлөн массаж хийн, угаана.'
+      content: product.howToUse
     },
-  ];
+  ].filter(d => d.content);
 
   const handleAddToCart = () => {
     addToCart(product.id, qty);
