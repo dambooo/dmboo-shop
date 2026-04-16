@@ -30,7 +30,7 @@ export default function Header({ onSearch }) {
   return (
     <>
       <div className="top-bar">
-        Үнэгүй хүргэлт — 40,000₮-с дээш захиалгад · 24-48 цагт хүргэнэ
+       24-48 цагт хүргэнэ
       </div>
       <header className="header">
         <div className="container header-inner">

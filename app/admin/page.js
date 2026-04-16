@@ -20,7 +20,7 @@ export default function AdminPage() {
   const [orderDetailId, setOrderDetailId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [form, setForm] = useState({
-    name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
+    name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
   });
   const [uploading, setUploading] = useState({ main: false, hover: false });
 
@@ -95,6 +95,9 @@ export default function AdminPage() {
         name: product.name,
         brand: product.brand,
         desc: product.desc || '',
+        fullDesc: product.fullDesc || '',
+        ingredients: product.ingredients || '',
+        howToUse: product.howToUse || '',
         price: product.price,
         oldPrice: product.oldPrice || '',
         discount: product.discount || '',
@@ -105,7 +108,7 @@ export default function AdminPage() {
       });
     } else {
       setEditId(null);
-      setForm({ name: '', brand: '', desc: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '' });
+      setForm({ name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '' });
     }
     setModalOpen(true);
   };
@@ -116,6 +119,9 @@ export default function AdminPage() {
       name: form.name.trim(),
       brand: form.brand.trim(),
       desc: form.desc.trim(),
+      fullDesc: form.fullDesc.trim() || null,
+      ingredients: form.ingredients.trim() || null,
+      howToUse: form.howToUse.trim() || null,
       price: parseInt(form.price) || 0,
       oldPrice: parseInt(form.oldPrice) || null,
       discount: parseInt(form.discount) || null,
@@ -438,8 +444,20 @@ export default function AdminPage() {
                   <input type="text" required placeholder="Жишээ: WELLA PROFESSIONALS" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} />
                 </div>
                 <div className="form-group full-width">
-                  <label>Тайлбар</label>
+                  <label>Товч тайлбар</label>
                   <input type="text" placeholder="Барааны товч тайлбар" value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} />
+                </div>
+                <div className="form-group full-width">
+                  <label>Дэлгэрэнгүй тайлбар</label>
+                  <textarea rows="3" placeholder="Барааны дэлгэрэнгүй тайлбар" value={form.fullDesc} onChange={e => setForm({...form, fullDesc: e.target.value})} />
+                </div>
+                <div className="form-group full-width">
+                  <label>Орцууд</label>
+                  <textarea rows="2" placeholder="Жишээ: Кокосын тос, алоэ вера, витамин E..." value={form.ingredients} onChange={e => setForm({...form, ingredients: e.target.value})} />
+                </div>
+                <div className="form-group full-width">
+                  <label>Хэрэглэх заавар</label>
+                  <textarea rows="2" placeholder="Жишээ: Чийгтэй үсэнд хэрэглэж, массаж хийнэ..." value={form.howToUse} onChange={e => setForm({...form, howToUse: e.target.value})} />
                 </div>
                 <div className="form-group">
                   <label>Үнэ (₮) *</label>
