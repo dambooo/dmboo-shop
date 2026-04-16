@@ -959,9 +959,52 @@ html{scroll-behavior:smooth}
   font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;
 }
 .sidebar-badge.new{background:#ef6c00;color:#fff}
-.sidebar-footer{padding:20px 24px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-footer{padding:20px 24px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:12px}
 .sidebar-back{color:rgba(255,255,255,.45);font-size:.85rem;transition:color .2s;text-decoration:none}
 .sidebar-back:hover{color:#fff}
+.sidebar-logout{
+  background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.45);
+  font-size:.82rem;padding:8px 16px;border-radius:8px;cursor:pointer;
+  transition:all .2s;font-family:inherit;
+}
+.sidebar-logout:hover{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.3)}
+
+/* Admin Login */
+.admin-login-page{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  padding:20px;
+}
+.admin-login-box{
+  background:#fff;border-radius:16px;padding:48px 40px;width:100%;max-width:400px;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.admin-login-logo{
+  font-family:var(--font-serif);font-size:2rem;font-weight:700;
+  letter-spacing:4px;margin-bottom:8px;color:var(--black);
+}
+.admin-login-title{font-size:1.1rem;font-weight:600;color:#333;margin-bottom:6px}
+.admin-login-subtitle{font-size:.85rem;color:#999;margin-bottom:28px}
+.admin-login-form{display:flex;flex-direction:column;gap:16px}
+.admin-login-input{
+  padding:14px 18px;border:2px solid #e0e0e0;border-radius:10px;
+  font-size:1rem;outline:none;transition:border-color .2s;text-align:center;
+  font-family:inherit;
+}
+.admin-login-input:focus{border-color:var(--black)}
+.admin-login-error{color:#e53935;font-size:.85rem;margin:0}
+.admin-login-btn{
+  padding:14px;background:var(--black);color:#fff;border:none;border-radius:10px;
+  font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s;
+  font-family:inherit;letter-spacing:1px;text-transform:uppercase;
+}
+.admin-login-btn:hover{opacity:.85}
+.admin-login-btn:disabled{opacity:.5;cursor:not-allowed}
+.admin-login-back{
+  display:inline-block;margin-top:20px;color:#999;font-size:.85rem;
+  text-decoration:none;transition:color .2s;
+}
+.admin-login-back:hover{color:#333}
 
 /* Main Content */
 .admin-main{flex:1;margin-left:250px;transition:margin-left .3s}

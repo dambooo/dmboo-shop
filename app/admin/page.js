@@ -8,6 +8,10 @@ import Toast from '../components/Toast';
 
 export default function AdminPage() {
   const { showToast } = useShop();
+  const [isAuth, setIsAuth] = useState(null); // null = checking, false = not logged in, true = logged in
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -23,6 +27,43 @@ export default function AdminPage() {
     name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
   });
   const [uploading, setUploading] = useState({ main: false, hover: false });
+
+  // Check auth on mount
+  useEffect(() => {
+    fetch('/api/admin/check')
+      .then(res => res.json())
+      .then(data => setIsAuth(data.authenticated))
+      .catch(() => setIsAuth(false));
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: loginPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsAuth(true);
+        setLoginPassword('');
+      } else {
+        setLoginError(data.error || 'Нэвтрэхэд алдаа гарлаа');
+      }
+    } catch {
+      setLoginError('Сервертэй холбогдох боломжгүй');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    setIsAuth(false);
+  };
 
   const handleImageUpload = async (file, type) => {
     if (!file) return;
@@ -168,6 +209,47 @@ export default function AdminPage() {
     showToast(`Захиалгын төлөв "${status}" болгож шинэчлэгдлээ`);
   };
 
+  // Loading state
+  if (isAuth === null) {
+    return (
+      <div className="admin-login-page">
+        <div className="admin-login-box">
+          <div className="admin-login-logo">GEZEG</div>
+          <p style={{color:'#888'}}>Шалгаж байна...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Login screen
+  if (!isAuth) {
+    return (
+      <div className="admin-login-page">
+        <div className="admin-login-box">
+          <div className="admin-login-logo">GEZEG</div>
+          <h2 className="admin-login-title">Удирдлагын самбар</h2>
+          <p className="admin-login-subtitle">Нэвтрэхийн тулд нууц үгээ оруулна уу</p>
+          <form onSubmit={handleLogin} className="admin-login-form">
+            <input
+              type="password"
+              placeholder="Нууц үг"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              required
+              autoFocus
+              className="admin-login-input"
+            />
+            {loginError && <p className="admin-login-error">{loginError}</p>}
+            <button type="submit" className="admin-login-btn" disabled={loginLoading}>
+              {loginLoading ? 'Нэвтэрч байна...' : 'Нэвтрэх'}
+            </button>
+          </form>
+          <Link href="/" className="admin-login-back">← Дэлгүүр рүү буцах</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-layout">
       {/* Sidebar */}
@@ -191,6 +273,7 @@ export default function AdminPage() {
         </nav>
         <div className="sidebar-footer">
           <Link href="/" className="sidebar-back">← Дэлгүүр рүү</Link>
+          <button className="sidebar-logout" onClick={handleLogout}>🚪 Гарах</button>
         </div>
       </aside>
 
