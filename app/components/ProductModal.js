@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatPrice } from '@/lib/products';
+import { formatPrice, categoryNames } from '@/lib/products';
 import { useShop } from '@/lib/ShopContext';
 
 export default function ProductModal({ product, onClose }) {
@@ -9,6 +9,7 @@ export default function ProductModal({ product, onClose }) {
   const [qty, setQty] = useState(1);
 
   if (!product) return null;
+  const catLabel = categoryNames[product.category] || product.category;
 
   return (
     <>
@@ -21,7 +22,7 @@ export default function ProductModal({ product, onClose }) {
           </div>
           <div className="modal-info">
             <div className="modal-breadcrumb">
-              Бүгд <span>/</span> {product.category === 'shampoo' ? 'Шампунь' : product.category === 'conditioner' ? 'Кондиционер' : product.category === 'mask' ? 'Маск' : product.category === 'oil' ? 'Тос' : 'Багц'}
+              Бүгд <span>/</span> {catLabel}
             </div>
             <h2>{product.name}</h2>
             <div className="modal-price">{formatPrice(product.price)}</div>

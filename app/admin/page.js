@@ -6,6 +6,10 @@ import { defaultProducts, formatPrice, categoryNames } from '@/lib/products';
 import { useShop } from '@/lib/ShopContext';
 import Toast from '../components/Toast';
 
+const ORDERS_STORAGE_KEY = 'mn_shop_orders';
+const INVENTORY_STORAGE_KEY = 'mn_shop_inventory_entries';
+const INVENTORY_TABLE_MISSING_ERROR = 'inventory_table_missing';
+
 export default function AdminPage() {
   const { showToast } = useShop();
   const [isAuth, setIsAuth] = useState(null); // null = checking, false = not logged in, true = logged in
@@ -14,6 +18,7 @@ export default function AdminPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [inventoryEntries, setInventoryEntries] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('all');
@@ -23,6 +28,20 @@ export default function AdminPage() {
   const [editId, setEditId] = useState(null);
   const [orderDetailId, setOrderDetailId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
+  const [inventoryEditId, setInventoryEditId] = useState(null);
+  const [inventoryForm, setInventoryForm] = useState({
+    productId: '',
+    productName: '',
+    buyerName: '',
+    purchaseDate: new Date().toISOString().slice(0, 10),
+    quantity: '1',
+    purchasePrice: '',
+    tax: '0',
+    cargo: '0',
+    sellPrice: '',
+    note: ''
+  });
   const [form, setForm] = useState({
     name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
   });
@@ -103,13 +122,29 @@ export default function AdminPage() {
   }, []);
 
   const loadOrders = useCallback(() => {
-    setOrders(JSON.parse(localStorage.getItem('mn_shop_orders') || '[]'));
+    setOrders(JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || '[]'));
+  }, []);
+
+  const loadInventoryEntries = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setInventoryEntries(data);
+        localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(data));
+        return;
+      }
+      throw new Error(data?.error || 'inventory_load_failed');
+    } catch {
+      setInventoryEntries(JSON.parse(localStorage.getItem(INVENTORY_STORAGE_KEY) || '[]'));
+    }
   }, []);
 
   useEffect(() => {
     loadProducts();
     loadOrders();
-  }, [loadProducts, loadOrders]);
+    loadInventoryEntries();
+  }, [loadProducts, loadOrders, loadInventoryEntries]);
 
   const saveProducts = (list) => {
     setProducts(list);
@@ -204,10 +239,235 @@ export default function AdminPage() {
 
   const updateOrderStatus = (orderId, status) => {
     const updated = orders.map(o => o.id === orderId ? { ...o, status } : o);
-    localStorage.setItem('mn_shop_orders', JSON.stringify(updated));
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
     setOrders(updated);
     showToast(`Захиалгын төлөв "${status}" болгож шинэчлэгдлээ`);
   };
+
+  const saveInventoryEntries = async (entries) => {
+    setInventoryEntries(entries);
+    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(entries));
+
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entries),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data?.error === INVENTORY_TABLE_MISSING_ERROR) {
+          showToast('Supabase дээр inventory_entries table үүсээгүй байна. Одоогоор local хадгалалт ашиглагдаж байна.');
+          return;
+        }
+        throw new Error(data?.error || 'inventory_save_failed');
+      }
+    } catch {
+      showToast('Интернет эсвэл серверийн алдаанаас шалтгаалж локал хадгалалт руу шилжлээ');
+    }
+  };
+
+  const resetInventoryForm = () => {
+    setInventoryForm({
+      productId: '',
+      productName: '',
+      buyerName: '',
+      purchaseDate: new Date().toISOString().slice(0, 10),
+      quantity: '1',
+      purchasePrice: '',
+      tax: '0',
+      cargo: '0',
+      sellPrice: '',
+      note: ''
+    });
+  };
+
+  const openInventoryForm = (entry = null) => {
+    if (entry) {
+      setInventoryEditId(entry.id);
+      setInventoryForm({
+        productId: entry.productId ? String(entry.productId) : '',
+        productName: entry.productName || '',
+        buyerName: entry.buyerName || '',
+        purchaseDate: entry.purchaseDate || new Date().toISOString().slice(0, 10),
+        quantity: String(entry.quantity || 1),
+        purchasePrice: String(entry.purchasePrice || 0),
+        tax: String(entry.tax || 0),
+        cargo: String(entry.cargo || 0),
+        sellPrice: String(entry.sellPrice || 0),
+        note: entry.note || ''
+      });
+    } else {
+      setInventoryEditId(null);
+      resetInventoryForm();
+    }
+    setInventoryModalOpen(true);
+  };
+
+  const handleInventorySave = async (e) => {
+    e.preventDefault();
+
+    const qty = Math.max(1, parseInt(inventoryForm.quantity, 10) || 1);
+    const purchasePrice = Math.max(0, parseFloat(inventoryForm.purchasePrice) || 0);
+    const tax = Math.max(0, parseFloat(inventoryForm.tax) || 0);
+    const cargo = Math.max(0, parseFloat(inventoryForm.cargo) || 0);
+    const sellPrice = Math.max(0, parseFloat(inventoryForm.sellPrice) || 0);
+    const selectedProduct = products.find(p => String(p.id) === inventoryForm.productId);
+    const productName = (selectedProduct?.name || inventoryForm.productName || '').trim();
+    const buyerName = inventoryForm.buyerName.trim();
+
+    if (!productName) {
+      showToast('Бараа сонгох эсвэл барааны нэр оруулна уу');
+      return;
+    }
+
+    if (!buyerName) {
+      showToast('Худалдан авсан хүний нэр заавал оруулна');
+      return;
+    }
+
+    const row = {
+      productId: selectedProduct?.id || null,
+      productName,
+      buyerName,
+      purchaseDate: inventoryForm.purchaseDate || new Date().toISOString().slice(0, 10),
+      quantity: qty,
+      purchasePrice,
+      tax,
+      cargo,
+      sellPrice,
+      note: inventoryForm.note.trim() || null
+    };
+
+    let updatedEntries;
+    if (inventoryEditId) {
+      updatedEntries = inventoryEntries.map(entry => entry.id === inventoryEditId ? { ...entry, ...row } : entry);
+      showToast('Агуулахын бүртгэл шинэчлэгдлээ');
+    } else {
+      const nextId = inventoryEntries.length === 0 ? 1 : Math.max(...inventoryEntries.map(entry => entry.id)) + 1;
+      updatedEntries = [...inventoryEntries, { ...row, id: nextId, createdAt: new Date().toISOString() }];
+      showToast('Агуулахын бүртгэл амжилттай нэмэгдлээ');
+    }
+
+    await saveInventoryEntries(updatedEntries);
+    setInventoryModalOpen(false);
+    setInventoryEditId(null);
+    resetInventoryForm();
+  };
+
+  const deleteInventoryEntry = async (id) => {
+    const entry = inventoryEntries.find(item => item.id === id);
+    if (!entry) return;
+
+    const confirmed = window.confirm(`"${entry.productName}" бүртгэлийг устгах уу?`);
+    if (!confirmed) return;
+
+    await saveInventoryEntries(inventoryEntries.filter(item => item.id !== id));
+    showToast('Агуулахын бүртгэл устгагдлаа');
+  };
+
+  const exportInventoryCSV = () => {
+    if (inventoryEntries.length === 0) {
+      showToast('CSV гаргах өгөгдөл алга');
+      return;
+    }
+
+    const rows = [
+      ['Огноо', 'Бараа', 'Худалдан авсан хүн', 'Тоо ширхэг', 'Худ. үнэ', 'Татвар', 'Карго', 'Борлуулах үнэ', 'Тэмдэглэл'],
+      ...[...inventoryEntries]
+        .sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate))
+        .map(entry => [
+          entry.purchaseDate || '',
+          entry.productName || '',
+          entry.buyerName || '',
+          entry.quantity || 0,
+          entry.purchasePrice || 0,
+          entry.tax || 0,
+          entry.cargo || 0,
+          entry.sellPrice || 0,
+          entry.note || ''
+        ])
+    ];
+
+    const csv = rows
+      .map(row => row
+        .map(cell => {
+          const value = String(cell ?? '').replace(/"/g, '""');
+          return `"${value}"`;
+        })
+        .join(','))
+      .join('\n');
+
+    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `inventory-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('CSV файл татаж авлаа');
+  };
+
+  const totalPurchasedQty = inventoryEntries.reduce((sum, entry) => sum + (entry.quantity || 0), 0);
+  const completedOrderItems = orders
+    .filter(order => order.status !== 'Шинэ')
+    .flatMap(order => order.items || []);
+  const soldByProductKey = completedOrderItems.reduce((acc, item) => {
+    const matchedProduct = products.find(product => product.name === item.name);
+    const qty = item.qty || 0;
+
+    if (matchedProduct?.id) {
+      const productIdKey = `id:${matchedProduct.id}`;
+      acc[productIdKey] = (acc[productIdKey] || 0) + qty;
+    }
+
+    const nameKey = `name:${(item.name || '').trim().toLowerCase()}`;
+    acc[nameKey] = (acc[nameKey] || 0) + qty;
+    return acc;
+  }, {});
+
+  const totalInventoryCost = inventoryEntries.reduce((sum, entry) => {
+    return sum + ((entry.purchasePrice || 0) * (entry.quantity || 0)) + (entry.tax || 0) + (entry.cargo || 0);
+  }, 0);
+  const totalProjectedSales = inventoryEntries.reduce((sum, entry) => {
+    return sum + ((entry.sellPrice || 0) * (entry.quantity || 0));
+  }, 0);
+  const inventoryByProduct = Object.values(inventoryEntries.reduce((acc, entry) => {
+    const key = entry.productId || entry.productName;
+    if (!acc[key]) {
+      acc[key] = {
+        key,
+        productName: entry.productName,
+        quantity: 0,
+        weightedCost: 0,
+        sellPrice: entry.sellPrice || 0,
+        soldQty: 0,
+        remainingQty: 0
+      };
+    }
+    acc[key].quantity += entry.quantity || 0;
+    acc[key].weightedCost += ((entry.purchasePrice || 0) * (entry.quantity || 0)) + (entry.tax || 0) + (entry.cargo || 0);
+    if (entry.sellPrice) {
+      acc[key].sellPrice = entry.sellPrice;
+    }
+    return acc;
+  }, {})).map(item => {
+    const soldFromId = typeof item.key === 'number' ? (soldByProductKey[`id:${item.key}`] || 0) : 0;
+    const soldFromName = soldByProductKey[`name:${(item.productName || '').trim().toLowerCase()}`] || 0;
+    const soldQty = Math.max(soldFromId, soldFromName);
+    const remainingQty = item.quantity - soldQty;
+    return {
+      ...item,
+      soldQty,
+      remainingQty
+    };
+  }).sort((a, b) => b.remainingQty - a.remainingQty);
+
+  const totalSoldQty = inventoryByProduct.reduce((sum, item) => sum + (item.soldQty || 0), 0);
+  const totalRemainingQty = inventoryByProduct.reduce((sum, item) => sum + (item.remainingQty || 0), 0);
 
   // Loading state
   if (isAuth === null) {
@@ -270,6 +530,10 @@ export default function AdminPage() {
             <span className="sidebar-icon">🛒</span> Захиалгууд
             {newOrders > 0 && <span className="sidebar-badge new">{newOrders}</span>}
           </button>
+          <button className={`sidebar-link ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => { setActiveTab('inventory'); loadInventoryEntries(); }}>
+            <span className="sidebar-icon">🏬</span> Агуулах
+            <span className="sidebar-badge">{inventoryEntries.length}</span>
+          </button>
         </nav>
         <div className="sidebar-footer">
           <Link href="/" className="sidebar-back">← Дэлгүүр рүү</Link>
@@ -286,6 +550,7 @@ export default function AdminPage() {
             {activeTab === 'dashboard' && 'Хянах самбар'}
             {activeTab === 'products' && 'Бүтээгдэхүүн'}
             {activeTab === 'orders' && 'Захиалгууд'}
+            {activeTab === 'inventory' && 'Агуулах'}
           </h1>
           <div className="admin-topbar-right">
             <span className="admin-date">{new Date().toLocaleDateString('mn-MN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -377,11 +642,10 @@ export default function AdminPage() {
               <div className="toolbar-right">
                 <input type="text" placeholder="Бараа хайх..." value={search} onChange={e => setSearch(e.target.value)} />
                 <select value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-                  <option value="all">Бүх ангилал</option>
-                  <option value="shampoo">Шампунь</option>
-                  <option value="conditioner">Кондиционер</option>
-                  <option value="mask">Маск</option>
-                  <option value="oil">Тос</option>
+                  <option value="all">Бүгд</option>
+                  <option value="hair">Үс арчилгаа</option>
+                  <option value="body">Бие арчилгаа</option>
+                  <option value="lip">Уруул</option>
                   <option value="set">Багц</option>
                 </select>
                 <button className="btn-add" onClick={() => openProductForm(null)}>+ Шинэ бараа нэмэх</button>
@@ -507,6 +771,127 @@ export default function AdminPage() {
           </section>
         )}
 
+        {/* Inventory Tab */}
+        {activeTab === 'inventory' && (
+          <section className="admin-content">
+            <div className="container">
+              <div className="admin-toolbar" style={{ marginBottom: 20 }}>
+                <div className="toolbar-inner">
+                  <h2>Худалдан авалт ба агуулахын бүртгэл</h2>
+                  <div className="toolbar-right">
+                    <button className="btn-add" onClick={() => openInventoryForm(null)}>+ Бүртгэл нэмэх</button>
+                    <button className="btn-edit" onClick={exportInventoryCSV}>⬇ CSV татах</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="inventory-summary-grid">
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Нийт бичлэг</span>
+                  <strong className="inventory-summary-value">{inventoryEntries.length}</strong>
+                </div>
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Нийт орсон ширхэг</span>
+                  <strong className="inventory-summary-value">{totalPurchasedQty}</strong>
+                </div>
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Нийт өртөг</span>
+                  <strong className="inventory-summary-value">{formatPrice(Math.round(totalInventoryCost))}</strong>
+                </div>
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Борлуулалтын дүн (тооцоолол)</span>
+                  <strong className="inventory-summary-value">{formatPrice(Math.round(totalProjectedSales))}</strong>
+                </div>
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Борлуулсан ширхэг (биелсэн захиалга)</span>
+                  <strong className="inventory-summary-value">{totalSoldQty}</strong>
+                </div>
+                <div className="inventory-summary-card">
+                  <span className="inventory-summary-label">Үлдэгдэл ширхэг</span>
+                  <strong className="inventory-summary-value">{totalRemainingQty}</strong>
+                </div>
+              </div>
+
+              {inventoryEntries.length > 0 ? (
+                <>
+                  <div className="table-wrapper" style={{ marginBottom: 20 }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Огноо</th>
+                          <th>Бараа</th>
+                          <th>Худалдан авсан хүн</th>
+                          <th>Тоо ширхэг</th>
+                          <th>Худ. үнэ</th>
+                          <th>Татвар</th>
+                          <th>Карго</th>
+                          <th>Борлуулах үнэ</th>
+                          <th>Үйлдэл</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...inventoryEntries].sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate)).map(entry => (
+                          <tr key={entry.id}>
+                            <td>{entry.purchaseDate}</td>
+                            <td>
+                              <div className="table-name">{entry.productName}</div>
+                              {entry.note && <div className="table-brand">Тэмдэглэл: {entry.note}</div>}
+                            </td>
+                            <td>{entry.buyerName}</td>
+                            <td>{entry.quantity}</td>
+                            <td className="table-price">{formatPrice(Math.round(entry.purchasePrice || 0))}</td>
+                            <td>{formatPrice(Math.round(entry.tax || 0))}</td>
+                            <td>{formatPrice(Math.round(entry.cargo || 0))}</td>
+                            <td className="table-price">{formatPrice(Math.round(entry.sellPrice || 0))}</td>
+                            <td>
+                              <div className="table-actions">
+                                <button className="btn-edit" onClick={() => openInventoryForm(entry)}>✏️ Засах</button>
+                                <button className="btn-del" onClick={() => deleteInventoryEntry(entry.id)}>🗑️ Устгах</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="table-wrapper">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Бараа</th>
+                          <th>Оруулсан тоо</th>
+                          <th>Борлуулсан тоо</th>
+                          <th>Үлдэгдэл</th>
+                          <th>Дундаж өртөг/ширхэг</th>
+                          <th>Санал болгосон борлуулах үнэ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inventoryByProduct.map(item => {
+                          const avgCost = item.quantity > 0 ? item.weightedCost / item.quantity : 0;
+                          return (
+                            <tr key={item.key}>
+                              <td>{item.productName}</td>
+                              <td><strong>{item.quantity}</strong></td>
+                              <td>{item.soldQty}</td>
+                              <td><strong>{item.remainingQty}</strong></td>
+                              <td>{formatPrice(Math.round(avgCost))}</td>
+                              <td>{formatPrice(Math.round(item.sellPrice || 0))}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="admin-empty">Агуулахын бүртгэл байхгүй байна</p>
+              )}
+            </div>
+          </section>
+        )}
+
       {/* Add/Edit Modal */}
       {modalOpen && (
         <>
@@ -558,10 +943,9 @@ export default function AdminPage() {
                   <label>Ангилал *</label>
                   <select required value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                     <option value="">Сонгох...</option>
-                    <option value="shampoo">Шампунь</option>
-                    <option value="conditioner">Кондиционер</option>
-                    <option value="mask">Маск</option>
-                    <option value="oil">Тос</option>
+                    <option value="hair">Үс</option>
+                    <option value="body">Бие</option>
+                    <option value="lip">Уруул</option>
                     <option value="set">Багц</option>
                   </select>
                 </div>
@@ -614,6 +998,138 @@ export default function AdminPage() {
               <button className="btn-cancel" onClick={() => setDeleteModalOpen(false)}>Болих</button>
               <button className="btn-delete" onClick={handleDelete}>Устгах</button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Inventory Modal */}
+      {inventoryModalOpen && (
+        <>
+          <div className="admin-modal-overlay open" onClick={() => setInventoryModalOpen(false)}></div>
+          <div className="admin-modal open">
+            <div className="admin-modal-header">
+              <h3>{inventoryEditId ? 'Агуулахын бүртгэл засах' : 'Агуулахын шинэ бүртгэл'}</h3>
+              <button className="modal-close" onClick={() => setInventoryModalOpen(false)}>✕</button>
+            </div>
+            <form onSubmit={handleInventorySave}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Бараа (жагсаалтаас)</label>
+                  <select
+                    value={inventoryForm.productId}
+                    onChange={e => {
+                      const productId = e.target.value;
+                      const product = products.find(item => String(item.id) === productId);
+                      setInventoryForm(prev => ({
+                        ...prev,
+                        productId,
+                        productName: product?.name || prev.productName,
+                        sellPrice: product ? String(product.price || '') : prev.sellPrice
+                      }));
+                    }}
+                  >
+                    <option value="">Сонгох...</option>
+                    {products.map(product => (
+                      <option key={product.id} value={product.id}>{product.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Барааны нэр *</label>
+                  <input
+                    type="text"
+                    required
+                    value={inventoryForm.productName}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, productName: e.target.value }))}
+                    placeholder="Жишээ: CLASSIC CLEAN SHAMPOO"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Худалдан авсан хүн *</label>
+                  <input
+                    type="text"
+                    required
+                    value={inventoryForm.buyerName}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, buyerName: e.target.value }))}
+                    placeholder="Нэр / байгууллага"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Худалдан авсан огноо *</label>
+                  <input
+                    type="date"
+                    required
+                    value={inventoryForm.purchaseDate}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Тоо ширхэг *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={inventoryForm.quantity}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, quantity: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Худалдаж авсан үнэ (1 ширхэг) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={inventoryForm.purchasePrice}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, purchasePrice: e.target.value }))}
+                    placeholder="₮"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Татвар (нийт)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={inventoryForm.tax}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, tax: e.target.value }))}
+                    placeholder="₮"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Карго (нийт)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={inventoryForm.cargo}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, cargo: e.target.value }))}
+                    placeholder="₮"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Борлуулах үнэ (1 ширхэг) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={inventoryForm.sellPrice}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, sellPrice: e.target.value }))}
+                    placeholder="₮"
+                  />
+                </div>
+                <div className="form-group full-width">
+                  <label>Тэмдэглэл</label>
+                  <textarea
+                    rows="2"
+                    value={inventoryForm.note}
+                    onChange={e => setInventoryForm(prev => ({ ...prev, note: e.target.value }))}
+                    placeholder="Нэмэлт тэмдэглэл"
+                  />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn-cancel" onClick={() => setInventoryModalOpen(false)}>Болих</button>
+                <button type="submit" className="btn-save">{inventoryEditId ? 'Шинэчлэх' : 'Хадгалах'}</button>
+              </div>
+            </form>
           </div>
         </>
       )}

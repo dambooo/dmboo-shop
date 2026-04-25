@@ -23,12 +23,6 @@ export default function ProductCard({ product }) {
         <div className="product-info">
           <div className="product-name">{product.name}</div>
           <div className="product-desc">{product.desc}</div>
-          {product.rating && (
-            <div className="product-rating">
-              <span className="stars">{'★'.repeat(Math.floor(product.rating))}{'☆'.repeat(5 - Math.floor(product.rating))}</span>
-              <span className="rating-count">({product.reviews || 0})</span>
-            </div>
-          )}
         </div>
       </Link>
       <div className="product-info">

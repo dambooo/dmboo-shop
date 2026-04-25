@@ -14,6 +14,7 @@ export default function Home() {
   const { products, refreshProducts } = useShop();
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -85,8 +86,31 @@ export default function Home() {
         p.desc.toLowerCase().includes(q)
       );
     }
+
+    if (activeCategory === 'hair' && activeSubCategory !== 'all') {
+      list = list.filter((p) => {
+        const name = p.name.toLowerCase();
+        if (activeSubCategory === 'shampoo') return name.includes('shampoo');
+        if (activeSubCategory === 'conditioner') return name.includes('conditioner') || name.includes('detangler');
+        if (activeSubCategory === 'mask') return name.includes('mask');
+        if (activeSubCategory === 'serum') return name.includes('serum');
+        return true;
+      });
+    }
+
+    if (activeCategory === 'body' && activeSubCategory !== 'all') {
+      list = list.filter((p) => {
+        const name = p.name.toLowerCase();
+        if (activeSubCategory === 'wash') return name.includes('body wash') || name.includes('wash');
+        if (activeSubCategory === 'lotion') return name.includes('lotion');
+        if (activeSubCategory === 'scrub') return name.includes('scrub');
+        if (activeSubCategory === 'oil') return name.includes('oil');
+        return true;
+      });
+    }
+
     setFilteredProducts(list);
-  }, [products, activeCategory, searchQuery]);
+  }, [products, activeCategory, activeSubCategory, searchQuery]);
 
   useEffect(() => {
     const handler = () => setCartOpen(prev => !prev);
@@ -96,12 +120,14 @@ export default function Home() {
 
   const handleCategoryClick = (cat) => {
     setActiveCategory(cat);
+    setActiveSubCategory('all');
     setSearchQuery('');
   };
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     setActiveCategory('all');
+    setActiveSubCategory('all');
   };
 
   const handleCheckout = () => {
@@ -111,12 +137,33 @@ export default function Home() {
 
   const categories = [
     { key: 'all', label: 'Бүгд' },
-    { key: 'shampoo', label: 'Шампунь' },
-    { key: 'conditioner', label: 'Кондиционер' },
-    { key: 'mask', label: 'Маск' },
-    { key: 'oil', label: 'Тос' },
+    { key: 'hair', label: 'Үс арчилгаа' },
+    { key: 'body', label: 'Бие арчилгаа' },
+    { key: 'lip', label: 'Уруул' },
     { key: 'set', label: 'Багц' },
   ];
+
+  const hairSubCategories = [
+    { key: 'all', label: 'Бүгд' },
+    { key: 'shampoo', label: 'Шампунь' },
+    { key: 'conditioner', label: 'Ангижруулагч' },
+    { key: 'mask', label: 'Маск' },
+    { key: 'serum', label: 'Серум' },
+  ];
+
+  const bodySubCategories = [
+    { key: 'all', label: 'Бүгд' },
+    { key: 'wash', label: 'Биеийн саван' },
+    { key: 'lotion', label: 'Лосьон' },
+    { key: 'scrub', label: 'Скраб' },
+    { key: 'oil', label: 'Тос' },
+  ];
+
+  const currentSubCategories = activeCategory === 'hair'
+    ? hairSubCategories
+    : activeCategory === 'body'
+      ? bodySubCategories
+      : [];
 
   const faqs = [
     { q: 'Хүргэлт хэрхэн хийгддэг вэ?', a: 'Улаанбаатар хотод 24-48 цагийн дотор хүргэнэ.' },
@@ -176,7 +223,7 @@ export default function Home() {
       <section className="brand-values-section fade-section">
         <div className="container">
           <p className="bv-subtitle">IT&apos;S ALL GOOD</p>
-          <h2 className="bv-title">Бид бол GEZEG.<br/>Цэвэр, байгалийн, өдөр тутмын<br/>арчилгаа — жинхэнэ үр дүнтэй.</h2>
+          <h2 className="bv-title">Цэвэр, байгалийн, өдөр тутмын<br/>арчилгаа — жинхэнэ үр дүнтэй.</h2>
           <div className="bv-grid">
             <div className="bv-item">
               <div className="bv-icon">
@@ -234,6 +281,21 @@ export default function Home() {
               </button>
             ))}
           </div>
+
+          {currentSubCategories.length > 0 && (
+            <div className="subcat-nav">
+              {currentSubCategories.map((sub) => (
+                <button
+                  key={sub.key}
+                  className={`subcat-btn ${activeSubCategory === sub.key ? 'active' : ''}`}
+                  onClick={() => setActiveSubCategory(sub.key)}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {filteredProducts.length > 0 ? (
             <div className="product-grid">
               {filteredProducts.map(product => (
@@ -268,16 +330,6 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Instagram CTA */}
-      <section className="insta-cta">
-        <div className="container">
-          <div className="insta-cta-inner">
-            <a href="#products" className="insta-cta-link">ХУДАЛДАН АВАХ</a>
-            <a href="https://www.instagram.com/gezegstore/" target="_blank" rel="noopener noreferrer" className="insta-cta-link">@GEZEGSTORE</a>
           </div>
         </div>
       </section>
