@@ -5,12 +5,28 @@ import { defaultProducts } from '@/lib/products';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Columns that actually exist in the Supabase products table.
+// NOTE: 'hidden' is NOT included because that column does not exist in DB yet.
+// The hidden flag is stored only in the products list and stripped before DB writes.
+const DB_COLUMNS = ['id', 'name', 'brand', 'desc', 'price', 'oldPrice', 'discount',
+  'category', 'badge', 'image', 'hoverImage', 'rating', 'reviews',
+  'fullDesc', 'ingredients', 'howToUse'];
+
 const normalizeProducts = (list = []) => list.map(product => ({
   ...product,
   hidden: Boolean(product.hidden)
 }));
 
 const getVisibleProducts = (list = []) => normalizeProducts(list).filter(product => !product.hidden);
+
+// Strip unknown columns (like hidden) before sending to Supabase
+function toDbRow(product) {
+  const row = {};
+  for (const col of DB_COLUMNS) {
+    row[col] = product[col] ?? null;
+  }
+  return row;
+}
 
 export async function GET(request) {
   const includeHidden = ['1', 'true'].includes(request.nextUrl.searchParams.get('includeHidden'));
@@ -32,13 +48,13 @@ export async function GET(request) {
     return NextResponse.json(fallbackProducts, { headers: noStoreHeaders });
   } catch (e) {
     console.error('Supabase read error:', e);
-
     const fallbackProducts = includeHidden ? normalizeProducts(defaultProducts) : getVisibleProducts(defaultProducts);
     return NextResponse.json(fallbackProducts, { headers: noStoreHeaders });
   }
 }
 
 export async function POST(request) {
+  const noStoreHeaders = { 'Cache-Control': 'no-store, max-age=0, must-revalidate' };
   try {
     const supabase = getServiceSupabase();
     const products = await request.json();
@@ -47,17 +63,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
-    const normalizedProducts = normalizeProducts(products);
+    // Strip hidden and other unknown fields before upsert
+    const rows = products.map(toDbRow);
 
-    // Upsert all products (insert or update by id)
     const { error } = await supabase
       .from('products')
-      .upsert(normalizedProducts, { onConflict: 'id' });
+      .upsert(rows, { onConflict: 'id' });
 
     if (error) throw error;
 
     // Delete products that are no longer in the list
-    const ids = normalizedProducts.map(p => p.id);
+    const ids = rows.map(p => p.id);
     if (ids.length > 0) {
       await supabase
         .from('products')
@@ -65,9 +81,9 @@ export async function POST(request) {
         .not('id', 'in', `(${ids.join(',')})`);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: noStoreHeaders });
   } catch (e) {
     console.error('Supabase write error:', e);
-    return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to save' }, { status: 500, headers: noStoreHeaders });
   }
 }
