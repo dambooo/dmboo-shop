@@ -70,7 +70,7 @@ export default function CheckoutModal({ isOpen, onClose }) {
             <div className="checkout-bank-row">
               <span>Эзэмшигч:</span><strong>Дамбасүрэн</strong>
             </div>
-            <p className="checkout-bank-note">Гүйлгээний утга-д захиалгын дугаар эсвэл утасны дугаараа бичнэ үү.</p>
+            <p className="checkout-bank-note">Гүйлгээний утга-д утасны дугаараа бичнэ үү.</p>
           </div>
           <div className="checkout-form">
             <label htmlFor="checkoutPhone">Утасны дугаар *</label>

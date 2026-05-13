@@ -149,7 +149,7 @@ export default function ProductPage() {
             <div className="pdp-features">
               <div className="pdp-feature">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>100% Жинхэнэ бүтээгдэхүүн</span>
+                <span>Байгалийн гаралтай органик бүтээгдэхүүн</span>
               </div>
               <div className="pdp-feature">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34"/><path d="M3 15h3.5l.88-3.07a1 1 0 0 1 .95-.93h5.34a1 1 0 0 1 .95.93L15.5 15H19"/><circle cx="18" cy="18" r="3"/><circle cx="9" cy="18" r="3"/><path d="M19 12h2l2 3v4h-3"/></svg>

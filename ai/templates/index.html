@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veo 3.1 & Gemini Pro Video Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #a0c1f2;
+            cursor: not-allowed;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .result-container {
+            display: none;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .script-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .error-box {
+            display: none;
+            background-color: #fdeaea;
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #d32f2f;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>AI Video Generator (Veo 3.1)</h1>
+        
+        <form id="generateForm">
+            <div class="form-group">
+                <label for="image">Upload Reference Image</label>
+                <input type="file" id="image" name="image" accept="image/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="idea">Your Idea / Scenario</label>
+                <input type="text" id="idea" name="idea" placeholder="e.g. A bustling futuristic city market..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="animation_type">Animation Type</label>
+                <select id="animation_type" name="animation_type" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="product">Buteegdehuun (Kawaii Product)</option>
+                    <option value="human">Hunii Durs (Human Avatar Lip-sync)</option>
+                </select>
+            </div>
+            
+            <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="aspect_ratio">Aspect Ratio</label>
+                    <select id="aspect_ratio" name="aspect_ratio" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        <option value="16:9">16:9 (Landscape)</option>
+                        <option value="9:16">9:16 (Portrait)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="resolution">Resolution</label>
+                    <select id="resolution" name="resolution" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="duration">Duration (seconds)</label>
+                    <select id="duration" name="duration" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                        <option value="4">4 Seconds</option>
+                        <option value="5">5 Seconds</option>
+                        <option value="6">6 Seconds</option>
+                        <option value="7">7 Seconds</option>
+                        <option value="8" selected>8 Seconds</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" id="submitBtn">Generate Video</button>
+        </form>
+
+        <div class="loader" id="loader">
+            <svg width="40" height="40" viewBox="0 0 50 50">
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#1a73e8" stroke-width="5" stroke-dasharray="31.4 31.4" stroke-dashoffset="0">
+                    <animateTransform attributeName="transform" type="rotate" values="0 25 25;360 25 25" dur="1s" repeatCount="indefinite" />
+                </circle>
+            </svg>
+            <p><strong>Generating Video...</strong></p>
+            <p style="font-size: 14px; color: #666;">This may take a few minutes (Gemini is writing the Mongolian script, and Veo 3 is rendering the video...)</p>
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="result-container" id="resultContainer">
+            <h3>Generated Script (Mongolian)</h3>
+            <div class="script-box" id="scriptBox"></div>
+            
+            <h3>Generated Video</h3>
+            <video id="videoPlayer" controls loop>
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('generateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const resultContainer = document.getElementById('resultContainer');
+            const errorBox = document.getElementById('errorBox');
+            
+            // UI Reset
+            submitBtn.disabled = true;
+            loader.style.display = 'block';
+            resultContainer.style.display = 'none';
+            errorBox.style.display = 'none';
+            
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate video.');
+                }
+                
+                // Show Result
+                document.getElementById('scriptBox').textContent = data.script;
+                
+                const videoPlayer = document.getElementById('videoPlayer');
+                videoPlayer.src = data.video_url;
+                videoPlayer.load();
+                
+                resultContainer.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = 'Error: ' + error.message;
+                errorBox.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
