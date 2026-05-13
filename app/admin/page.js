@@ -123,7 +123,7 @@ export default function AdminPage() {
   };
 
   const loadProducts = useCallback(() => {
-    fetch('/api/products?includeHidden=1')
+    fetch('/api/products?includeHidden=1', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { defaultProducts } from '@/lib/products';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const normalizeProducts = (list = []) => list.map(product => ({
   ...product,
   hidden: Boolean(product.hidden)
@@ -11,6 +14,7 @@ const getVisibleProducts = (list = []) => normalizeProducts(list).filter(product
 
 export async function GET(request) {
   const includeHidden = ['1', 'true'].includes(request.nextUrl.searchParams.get('includeHidden'));
+  const noStoreHeaders = { 'Cache-Control': 'no-store, max-age=0, must-revalidate' };
 
   try {
     const supabase = getServiceSupabase();
@@ -21,16 +25,16 @@ export async function GET(request) {
 
     if (error) throw error;
     if (data && data.length > 0) {
-      return NextResponse.json(includeHidden ? normalizeProducts(data) : getVisibleProducts(data));
+      return NextResponse.json(includeHidden ? normalizeProducts(data) : getVisibleProducts(data), { headers: noStoreHeaders });
     }
 
     const fallbackProducts = includeHidden ? normalizeProducts(defaultProducts) : getVisibleProducts(defaultProducts);
-    return NextResponse.json(fallbackProducts);
+    return NextResponse.json(fallbackProducts, { headers: noStoreHeaders });
   } catch (e) {
     console.error('Supabase read error:', e);
 
     const fallbackProducts = includeHidden ? normalizeProducts(defaultProducts) : getVisibleProducts(defaultProducts);
-    return NextResponse.json(fallbackProducts);
+    return NextResponse.json(fallbackProducts, { headers: noStoreHeaders });
   }
 }
 
