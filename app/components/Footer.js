@@ -61,17 +61,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Payment Methods */}
-        <div className="footer-payments">
-          <span className="footer-payments-label">Төлбөрийн хэлбэрүүд:</span>
-          <div className="footer-payment-icons">
-            <span className="payment-badge">QPay</span>
-            <span className="payment-badge">SocialPay</span>
-            <span className="payment-badge">Дансаар</span>
-            <span className="payment-badge">Бэлнээр</span>
-          </div>
-        </div>
-
         {/* Bottom */}
         <div className="footer-bottom">
           <p>&copy; 2026 GEZEG. Бүх эрх хуулиар хамгаалагдсан.</p>
