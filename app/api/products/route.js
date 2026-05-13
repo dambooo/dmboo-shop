@@ -5,12 +5,10 @@ import { defaultProducts } from '@/lib/products';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Columns that actually exist in the Supabase products table.
-// NOTE: 'hidden' is NOT included because that column does not exist in DB yet.
-// The hidden flag is stored only in the products list and stripped before DB writes.
+// Columns that exist in the Supabase products table.
 const DB_COLUMNS = ['id', 'name', 'brand', 'desc', 'price', 'oldPrice', 'discount',
   'category', 'badge', 'image', 'hoverImage', 'rating', 'reviews',
-  'fullDesc', 'ingredients', 'howToUse'];
+  'fullDesc', 'ingredients', 'howToUse', 'hidden'];
 
 const normalizeProducts = (list = []) => list.map(product => ({
   ...product,
