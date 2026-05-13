@@ -787,11 +787,16 @@ export default function AdminPage() {
                             </ul>
                           </td>
                           <td className="table-price">{formatPrice(o.total)}</td>
-                          <td><span className={`order-status status-${o.status === 'Шинэ' ? 'new' : 'done'}`}>{o.status}</span></td>
+                          <td><span className={`order-status status-${o.status === 'Шинэ' ? 'new' : o.status === 'Цуцлагдсан' ? 'cancelled' : 'done'}`}>{o.status}</span></td>
                           <td>
                             <div className="table-actions">
                               {o.status === 'Шинэ' ? (
-                                <button className="btn-confirm" onClick={() => updateOrderStatus(o.id, 'Биелсэн')}>✅ Биелүүлэх</button>
+                                <>
+                                  <button className="btn-confirm" onClick={() => updateOrderStatus(o.id, 'Биелсэн')}>✅ Биелүүлэх</button>
+                                  <button className="btn-cancel" onClick={() => updateOrderStatus(o.id, 'Цуцлагдсан')}>✕ Цуцлах</button>
+                                </>
+                              ) : o.status === 'Цуцлагдсан' ? (
+                                <button className="btn-revert" onClick={() => updateOrderStatus(o.id, 'Шинэ')}>↩️ Буцаах</button>
                               ) : (
                                 <button className="btn-revert" onClick={() => updateOrderStatus(o.id, 'Шинэ')}>↩️ Буцаах</button>
                               )}
