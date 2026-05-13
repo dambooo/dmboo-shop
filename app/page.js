@@ -11,8 +11,7 @@ import CheckoutModal from './components/CheckoutModal';
 import Toast from './components/Toast';
 
 export default function Home() {
-  const { products, refreshProducts } = useShop();
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const { products, productsLoaded, refreshProducts } = useShop();
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSubCategory, setActiveSubCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,14 +40,14 @@ export default function Home() {
     {
       image: '/banners/hero-1.jpg',
       subtitle: '2000+ сэтгэгдэл',
-      title: 'Байгалийн гаралтай үсний арчилгаа.',
+      title: 'Байгалийн гаралтай үс арчилгаа.',
       desc: 'ТАНЫ ҮС, ТАНЫ ГАЙХАМШИГ',
       btn: 'SHOP NOW',
     },
     {
       image: '/banners/hero-2.jpg',
       subtitle: 'Шинэ цуврал',
-      title: 'Гүн тэжээллэг маск & тос.',
+      title: 'Гүн тэжээллэг маск',
       desc: 'БАЙГАЛИЙН ХҮЧИЙГ МЭДРЭЭРЭЙ',
       btn: 'SHOP NOW',
     },
@@ -74,49 +73,45 @@ export default function Home() {
   }, [refreshProducts]);
 
   useEffect(() => {
-    let list = products;
-    if (activeCategory !== 'all') {
-      list = list.filter(p => p.category === activeCategory);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.desc.toLowerCase().includes(q)
-      );
-    }
-
-    if (activeCategory === 'hair' && activeSubCategory !== 'all') {
-      list = list.filter((p) => {
-        const name = p.name.toLowerCase();
-        if (activeSubCategory === 'shampoo') return name.includes('shampoo');
-        if (activeSubCategory === 'conditioner') return name.includes('conditioner') || name.includes('detangler');
-        if (activeSubCategory === 'mask') return name.includes('mask');
-        if (activeSubCategory === 'serum') return name.includes('serum');
-        return true;
-      });
-    }
-
-    if (activeCategory === 'body' && activeSubCategory !== 'all') {
-      list = list.filter((p) => {
-        const name = p.name.toLowerCase();
-        if (activeSubCategory === 'wash') return name.includes('body wash') || name.includes('wash');
-        if (activeSubCategory === 'lotion') return name.includes('lotion');
-        if (activeSubCategory === 'scrub') return name.includes('scrub');
-        if (activeSubCategory === 'oil') return name.includes('oil');
-        return true;
-      });
-    }
-
-    setFilteredProducts(list);
-  }, [products, activeCategory, activeSubCategory, searchQuery]);
-
-  useEffect(() => {
     const handler = () => setCartOpen(prev => !prev);
     window.addEventListener('toggleCart', handler);
     return () => window.removeEventListener('toggleCart', handler);
   }, []);
+
+  let filteredProducts = products;
+  if (activeCategory !== 'all') {
+    filteredProducts = filteredProducts.filter(p => p.category === activeCategory);
+  }
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filteredProducts = filteredProducts.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q) ||
+      p.desc.toLowerCase().includes(q)
+    );
+  }
+
+  if (activeCategory === 'hair' && activeSubCategory !== 'all') {
+    filteredProducts = filteredProducts.filter((p) => {
+      const name = p.name.toLowerCase();
+      if (activeSubCategory === 'shampoo') return name.includes('shampoo');
+      if (activeSubCategory === 'conditioner') return name.includes('conditioner') || name.includes('detangler');
+      if (activeSubCategory === 'mask') return name.includes('mask');
+      if (activeSubCategory === 'serum') return name.includes('serum');
+      return true;
+    });
+  }
+
+  if (activeCategory === 'body' && activeSubCategory !== 'all') {
+    filteredProducts = filteredProducts.filter((p) => {
+      const name = p.name.toLowerCase();
+      if (activeSubCategory === 'wash') return name.includes('body wash') || name.includes('wash');
+      if (activeSubCategory === 'lotion') return name.includes('lotion');
+      if (activeSubCategory === 'scrub') return name.includes('scrub');
+      if (activeSubCategory === 'oil') return name.includes('oil');
+      return true;
+    });
+  }
 
   const handleCategoryClick = (cat) => {
     setActiveCategory(cat);
@@ -216,7 +211,13 @@ export default function Home() {
         <div className="container">
           <h2 className="section-title-center">Хамгийн их борлуулалттай</h2>
         </div>
-        <ProductCarousel products={products.slice(0, 8)} />
+        {productsLoaded ? (
+          <ProductCarousel products={products.slice(0, 8)} />
+        ) : (
+          <div className="products-loading-row">
+            {[...Array(4)].map((_, i) => <div key={i} className="product-skeleton" />)}
+          </div>
+        )}
       </section>
 
       {/* 3. Brand Values — IT'S ALL GOOD */}
@@ -229,7 +230,7 @@ export default function Home() {
               <div className="bv-icon">
                 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M24 4C18 4 14 10 14 16c0 8 10 18 10 18s10-10 10-18c0-6-4-12-10-12z"/><circle cx="24" cy="16" r="4"/><path d="M10 38c0-4 6-7 14-7s14 3 14 7"/></svg>
               </div>
-              <span className="bv-label">100% ЖИНХЭНЭ<br/>БҮТЭЭГДЭХҮҮН</span>
+              <span className="bv-label">Байгалийн гаралтай органик<br/>БҮТЭЭГДЭХҮҮН</span>
             </div>
             <div className="bv-item">
               <div className="bv-icon">
@@ -267,7 +268,7 @@ export default function Home() {
       </section>
 
       {/* 6. All Products */}
-      <section className="products-section fade-section" id="products">
+      <section className="products-section" id="products">
         <div className="container">
           {/* CA Naturals style category nav */}
           <div className="collection-nav">
@@ -296,7 +297,11 @@ export default function Home() {
             </div>
           )}
 
-          {filteredProducts.length > 0 ? (
+          {!productsLoaded ? (
+            <div className="product-grid">
+              {[...Array(8)].map((_, i) => <div key={i} className="product-skeleton" />)}
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="product-grid">
               {filteredProducts.map(product => (
                 <ProductCard
