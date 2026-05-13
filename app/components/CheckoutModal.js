@@ -56,6 +56,22 @@ export default function CheckoutModal({ isOpen, onClose }) {
             <span>Нийт дүн:</span>
             <strong>{formatPrice(cartTotal)}</strong>
           </div>
+          <div className="checkout-bank-info">
+            <p className="checkout-bank-title">💳 Дансаар шилжүүлэх</p>
+            <div className="checkout-bank-row">
+              <span>Банк:</span><strong>Хаан банк</strong>
+            </div>
+            <div className="checkout-bank-row">
+              <span>Дансны дугаар:</span><strong>5517200258</strong>
+            </div>
+            <div className="checkout-bank-row">
+              <span>IBAN:</span><strong>910005005517200258</strong>
+            </div>
+            <div className="checkout-bank-row">
+              <span>Эзэмшигч:</span><strong>Дамбасүрэн</strong>
+            </div>
+            <p className="checkout-bank-note">Гүйлгээний утга-д захиалгын дугаар эсвэл утасны дугаараа бичнэ үү.</p>
+          </div>
           <div className="checkout-form">
             <label htmlFor="checkoutPhone">Утасны дугаар *</label>
             <input

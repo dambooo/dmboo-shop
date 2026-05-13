@@ -849,6 +849,24 @@ html{scroll-behavior:smooth}
   display:flex;justify-content:space-between;font-size:1rem;margin:18px 0;
   padding-top:12px;border-top:2px solid var(--gray-200);font-weight:700;
 }
+.checkout-bank-info{
+  background:#f8f9fa;border:1.5px solid #e0e0e0;border-radius:10px;
+  padding:14px 16px;margin-bottom:18px;
+}
+.checkout-bank-title{
+  font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--black);margin:0 0 10px;
+}
+.checkout-bank-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.88rem;margin-bottom:6px;
+}
+.checkout-bank-row span{color:#666}
+.checkout-bank-row strong{color:var(--black);font-weight:700}
+.checkout-bank-note{
+  font-size:.76rem;color:#888;margin:10px 0 0;line-height:1.5;
+  border-top:1px solid #e0e0e0;padding-top:8px;
+}
 .checkout-form{margin-bottom:18px}
 .checkout-form label{
   display:block;font-size:.76rem;font-weight:700;color:var(--black);
