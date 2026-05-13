@@ -9,9 +9,14 @@ import Toast from '../components/Toast';
 const ORDERS_STORAGE_KEY = 'mn_shop_orders';
 const INVENTORY_STORAGE_KEY = 'mn_shop_inventory_entries';
 const INVENTORY_TABLE_MISSING_ERROR = 'inventory_table_missing';
+const normalizeProducts = (list = []) => list.map(product => ({
+  ...product,
+  hidden: Boolean(product.hidden)
+}));
 
 export default function AdminPage() {
   const { showToast } = useShop();
+  const [todayLabel, setTodayLabel] = useState('');
   const [isAuth, setIsAuth] = useState(null); // null = checking, false = not logged in, true = logged in
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -43,7 +48,7 @@ export default function AdminPage() {
     note: ''
   });
   const [form, setForm] = useState({
-    name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: ''
+    name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '', hidden: false
   });
   const [uploading, setUploading] = useState({ main: false, hover: false });
 
@@ -53,6 +58,15 @@ export default function AdminPage() {
       .then(res => res.json())
       .then(data => setIsAuth(data.authenticated))
       .catch(() => setIsAuth(false));
+  }, []);
+
+  useEffect(() => {
+    const formatted = new Intl.DateTimeFormat('mn-MN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(new Date());
+    setTodayLabel(formatted);
   }, []);
 
   const handleLogin = async (e) => {
@@ -109,16 +123,16 @@ export default function AdminPage() {
   };
 
   const loadProducts = useCallback(() => {
-    fetch('/api/products')
+    fetch('/api/products?includeHidden=1')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setProducts(data);
+          setProducts(normalizeProducts(data));
         } else {
-          setProducts(defaultProducts);
+          setProducts(normalizeProducts(defaultProducts));
         }
       })
-      .catch(() => setProducts(defaultProducts));
+      .catch(() => setProducts(normalizeProducts(defaultProducts)));
   }, []);
 
   const loadOrders = useCallback(() => {
@@ -147,11 +161,12 @@ export default function AdminPage() {
   }, [loadProducts, loadOrders, loadInventoryEntries]);
 
   const saveProducts = (list) => {
-    setProducts(list);
+    const normalizedList = normalizeProducts(list);
+    setProducts(normalizedList);
     fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list),
+      body: JSON.stringify(normalizedList),
     }).catch(() => {});
   };
 
@@ -180,11 +195,12 @@ export default function AdminPage() {
         category: product.category,
         badge: product.badge || 'sale',
         image: product.image || '',
-        hoverImage: product.hoverImage || ''
+        hoverImage: product.hoverImage || '',
+        hidden: Boolean(product.hidden)
       });
     } else {
       setEditId(null);
-      setForm({ name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '' });
+      setForm({ name: '', brand: '', desc: '', fullDesc: '', ingredients: '', howToUse: '', price: '', oldPrice: '', discount: '', category: '', badge: 'sale', image: '', hoverImage: '', hidden: false });
     }
     setModalOpen(true);
   };
@@ -204,7 +220,8 @@ export default function AdminPage() {
       category: form.category,
       badge: form.badge,
       image: form.image.trim() || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&h=400&fit=crop',
-      hoverImage: form.hoverImage.trim() || null
+      hoverImage: form.hoverImage.trim() || null,
+      hidden: Boolean(form.hidden)
     };
 
     let updated;
@@ -227,6 +244,16 @@ export default function AdminPage() {
     setDeleteModalOpen(false);
     setDeleteTarget(null);
     showToast('Бараа амжилттай устгагдлаа!');
+  };
+
+  const handleToggleProductVisibility = (productId, isVisible) => {
+    const updated = products.map(product => (
+      product.id === productId
+        ? { ...product, hidden: !isVisible }
+        : product
+    ));
+    saveProducts(updated);
+    showToast(isVisible ? 'Бараа сайт дээр харагдах боллоо' : 'Бараа сайтаас нуугдлаа');
   };
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
@@ -553,7 +580,7 @@ export default function AdminPage() {
             {activeTab === 'inventory' && 'Агуулах'}
           </h1>
           <div className="admin-topbar-right">
-            <span className="admin-date">{new Date().toLocaleDateString('mn-MN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span className="admin-date" suppressHydrationWarning>{todayLabel}</span>
           </div>
         </header>
 
@@ -668,6 +695,7 @@ export default function AdminPage() {
                         <th>Үнэ</th>
                         <th>Хуучин үнэ</th>
                         <th>Хямдрал</th>
+                        <th>Сайт дээр</th>
                         <th>Үйлдэл</th>
                       </tr>
                     </thead>
@@ -690,6 +718,16 @@ export default function AdminPage() {
                           <td className="table-price">{formatPrice(p.price)}</td>
                           <td>{p.oldPrice ? <span className="table-old-price">{formatPrice(p.oldPrice)}</span> : '-'}</td>
                           <td>{p.discount ? <span className="table-discount">-{p.discount}%</span> : '-'}</td>
+                          <td>
+                            <label className="visibility-check">
+                              <input
+                                type="checkbox"
+                                checked={!p.hidden}
+                                onChange={e => handleToggleProductVisibility(p.id, e.target.checked)}
+                              />
+                              <span>{p.hidden ? 'Нуугдсан' : 'Харагдана'}</span>
+                            </label>
+                          </td>
                           <td>
                             <div className="table-actions">
                               <button className="btn-edit" onClick={() => openProductForm(p)}>✏️ Засах</button>
@@ -956,6 +994,17 @@ export default function AdminPage() {
                     <option value="new">Шинэ</option>
                     <option value="hot">Эрэлттэй</option>
                   </select>
+                </div>
+                <div className="form-group full-width">
+                  <label className="form-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.hidden}
+                      onChange={e => setForm({ ...form, hidden: e.target.checked })}
+                    />
+                    <span>Сайт дээр нуух</span>
+                  </label>
+                  <small>Чагталсан үед энэ бараа админд харагдах боловч дэлгүүрийн сайт дээр харагдахгүй.</small>
                 </div>
                 <div className="form-group full-width">
                   <label>Үндсэн зураг</label>

@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { defaultProducts } from '@/lib/products';
 
-export async function GET() {
+const normalizeProducts = (list = []) => list.map(product => ({
+  ...product,
+  hidden: Boolean(product.hidden)
+}));
+
+const getVisibleProducts = (list = []) => normalizeProducts(list).filter(product => !product.hidden);
+
+export async function GET(request) {
+  const includeHidden = ['1', 'true'].includes(request.nextUrl.searchParams.get('includeHidden'));
+
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase
@@ -12,12 +21,16 @@ export async function GET() {
 
     if (error) throw error;
     if (data && data.length > 0) {
-      return NextResponse.json(data);
+      return NextResponse.json(includeHidden ? normalizeProducts(data) : getVisibleProducts(data));
     }
-    return NextResponse.json(defaultProducts);
+
+    const fallbackProducts = includeHidden ? normalizeProducts(defaultProducts) : getVisibleProducts(defaultProducts);
+    return NextResponse.json(fallbackProducts);
   } catch (e) {
     console.error('Supabase read error:', e);
-    return NextResponse.json(defaultProducts);
+
+    const fallbackProducts = includeHidden ? normalizeProducts(defaultProducts) : getVisibleProducts(defaultProducts);
+    return NextResponse.json(fallbackProducts);
   }
 }
 
@@ -30,15 +43,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
+    const normalizedProducts = normalizeProducts(products);
+
     // Upsert all products (insert or update by id)
     const { error } = await supabase
       .from('products')
-      .upsert(products, { onConflict: 'id' });
+      .upsert(normalizedProducts, { onConflict: 'id' });
 
     if (error) throw error;
 
     // Delete products that are no longer in the list
-    const ids = products.map(p => p.id);
+    const ids = normalizedProducts.map(p => p.id);
     if (ids.length > 0) {
       await supabase
         .from('products')
